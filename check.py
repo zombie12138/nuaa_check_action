@@ -124,25 +124,25 @@ def get_uid_id(cookies):
 def check(cookies, geo_api_info, id, uid):
     # Post的data，如果你是勇士可以尝试给这个打上注释，老谜语人了，看不懂ヾ(•ω•`)o
     data = {
-        'sfzhux': '0',
-        'zhuxdz': '',
-        'szgj': '',
-        'szcs': '',
-        'szgjcs': '',
-        'sfjwfh': '0',
-        'sfyjsjwfh': '0',
-        'sfjcjwfh': '0',
-        'sflznjcjwfh': '0',
-        'sflqjkm': '4',
-        'jkmys': '1',
-        'sfjtgfxdq': '0',
-        'tw': '2',
-        'sfcxtz': '0',
-        'sfjcbh': '0',
+        'sfzhux': '0',      # 是否住校
+        'zhuxdz': '',       # 住校地址
+        'szgj': '',         # 所在国家
+        'szcs': '',         # 所在城市
+        'szgjcs': '',       # 所在国家城市
+        'sfjwfh': '0',      # 今日是否从境外中高风险地区返回？
+        'sfyjsjwfh': '0',   # 今日是否有家属从境外中高风险地区返回？
+        'sfjcjwfh': '0',    # 是否接触境外返华
+        'sflznjcjwfh': '0', # 今日是否与从境外中高风险地区返回的人员有过密切接触（不含已经解除隔离的境外返回人员）？
+        'sflqjkm': '4',     # 是否拥有苏康码？
+        'jkmys': '1',       # 当前苏康码颜色是？
+        'sfjtgfxdq': '0',   # 今日是否到过或者经停中高风险地区？
+        'tw': '2',          # 今日体温范围
+        'sfcxtz': '0',      # 今日是否出现发热、乏力、干咳、呼吸困难等症状？
+        'sfjcbh': '0',      # 今日是否接触疑似/确诊人群？
         'sfcxzysx': '0',
-        'qksm': '',
-        'sfyyjc': '0',
-        'jcjgqr': '0',
+        'qksm': '',         # 情况说明
+        'sfyyjc': '0',      # 是否到相关医院或门诊检查？
+        'jcjgqr': '0',      # 检查结果属于以下哪种情况
         'remark': '',
         'address': geo_api_info['formattedAddress'],
         'geo_api_info': json.dumps(geo_api_info, separators=(',', ':')),
@@ -150,20 +150,20 @@ def check(cookies, geo_api_info, id, uid):
                  + ' ' + geo_api_info['addressComponent']['district'],
         'province': geo_api_info['addressComponent']['province'],
         'city': geo_api_info['addressComponent']['city'],
-        'sfzx': '0',
-        'sfjcwhry': '0',
-        'sfjchbry': '0',
-        'sfcyglq': '0',
-        'gllx': '',
-        'glksrq': '',
-        'jcbhlx': '',
-        'jcbhrq': '',
-        'bztcyy': '',
-        'sftjhb': '0',
-        'sftjwh': '0',
-        'sftjwz': '0',
-        'sfjcwzry': '0',
-        'jcjg': '',
+        'sfzx': '0',        # 今日是否在校？
+        'sfjcwhry': '0',    # 今日是否与来自武汉市的人员有过密切接触？
+        'sfjchbry': '0',    # 今日是否与来自湖北其他地区（不含武汉市）的人员有过密切接触？
+        'sfcyglq': '0',     # 是否处于隔离期/医学观察期（含特殊情况需要居家观察的）？
+        'gllx': '',         # 隔离/医学观察场所
+        'glksrq': '',       # 隔离/医学观察开始时间
+        'jcbhlx': '',       # 接触人群类型
+        'jcbhrq': '',       # 接触时间
+        'bztcyy': '',       # 当前地点与上次不在同一城市，原因如下
+        'sftjhb': '0',      # 今日是否到过或者经停湖北其他地区（除武汉）？
+        'sftjwh': '0',      # 今日是否到过武汉（交通工具经停、人没有下车不算）？
+        'sftjwz': '0',      # 今日是否到过或者经停温州？
+        'sfjcwzry': '0',    # 今日是否与来自温州市的人员有过密切接触？
+        'jcjg': '',         # 检测结果
         'date': time.strftime("%Y%m%d", time.localtime()),  # 打卡年月日一共8位
         'uid': uid,  # UID
         'created': round(time.time()), # 时间戳
