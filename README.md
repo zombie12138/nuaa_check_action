@@ -34,6 +34,10 @@
 
 ## Usage
 
+### Step.0 网页打卡检验一下
+
+浏览器访问<https://m.nuaa.edu.cn/ncov/wap/nuaa/index>，登录进行打卡。其一是检验自己的账号密码是否正确，另外也有同学反应如果不网页打一次卡，脚本打卡过程中可能无法获取uid（尽管他不那么重要）
+
 ### Step.1 Fork
 
 点击右上角Fork，Fork至自己的仓库
