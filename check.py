@@ -212,9 +212,12 @@ def send_result(config, recever, result, messgae):
                   recever, messgae, '打卡失败', '主人', '打卡姬')
 
 def main():
-    config = sys.stdin.read()
-    config = json.loads(config)
-
+    try:
+        config = sys.stdin.read()
+        config = json.loads(config)
+    except:
+        print('Json配置错误')
+        return
     for student in config['students']:
         result = False  # 打卡结果，False表示没有打上
         stu_number = student['stu_number']
