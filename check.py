@@ -122,6 +122,17 @@ def get_uid_id(cookies):
 
 # 签到，返回True成功，否则失败
 def check(cookies, geo_api_info, id, uid):
+    my_province = geo_api_info['addressComponent']['province']
+    my_city = geo_api_info['addressComponent']['city']
+    my_district = geo_api_info['addressComponent']['district']
+    my_address = geo_api_info['formattedAddress']
+    # cities like Chongqing or Beijing do not have "city"
+    # which makes my_city is equal to []
+    # triggers error: must be str, not list
+    if my_city == []:
+        my_area = my_province + ' ' + my_district
+    else:
+        my_area = my_province + ' ' + my_city + ' ' + my_district
     # Post的data，如果你是勇士可以尝试给这个打上注释，老谜语人了，看不懂ヾ(•ω•`)o
     data = {
         'sfzhux': '0',      # 是否住校
@@ -144,12 +155,11 @@ def check(cookies, geo_api_info, id, uid):
         'sfyyjc': '0',      # 是否到相关医院或门诊检查？
         'jcjgqr': '0',      # 检查结果属于以下哪种情况
         'remark': '',
-        'address': geo_api_info['formattedAddress'],
+        'address': my_address,
         'geo_api_info': json.dumps(geo_api_info, separators=(',', ':')),
-        'area': geo_api_info['addressComponent']['province'] + ' ' + geo_api_info['addressComponent']['city']
-                 + ' ' + geo_api_info['addressComponent']['district'],
-        'province': geo_api_info['addressComponent']['province'],
-        'city': geo_api_info['addressComponent']['city'],
+        'area': my_area,
+        'province': my_province,
+        'city': my_city,
         'sfzx': '0',        # 今日是否在校？
         'sfjcwhry': '0',    # 今日是否与来自武汉市的人员有过密切接触？
         'sfjchbry': '0',    # 今日是否与来自湖北其他地区（不含武汉市）的人员有过密切接触？
