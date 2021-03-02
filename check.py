@@ -14,7 +14,7 @@ delay = 2   # 访问页面前的延迟，为了防止过快访问网站被封IP
 
 
 # 登陆并且返回json形式的cookie，如果登陆失败返回空串
-# 先访问/uc/wap/login，获得eai-sess，然后带着她访问/uc/wap/login/check，获得UUkey
+# 先访问/uc/wap/login，获得eai-sess和UUkey，然后带着她访问/uc/wap/login/check
 def login(stu_number, password):
     cookies = ''
     for _ in range(try_times):
@@ -104,12 +104,16 @@ def get_address_info(longitude, latitude):
     # print(dump.dump_all(response).decode('utf-8'))
 
 # 获取uid，id，打卡时候会用到，获取失败异常最可能的原因是账号密码错误
-def get_uid_id(cookies):
+def get_uid_id(cookies, in_school):
+    if in_school:
+        url = 'https://m.nuaa.edu.cn/ncov/wap/nuaa/index'
+    else:
+        url = 'https://m.nuaa.edu.cn/ncov/wap/default'
     for _ in range(try_times):
         try:
             time.sleep(delay)
             response = requests.get(
-                'https://m.nuaa.edu.cn/ncov/wap/default', cookies=cookies)
+                url, cookies=cookies)
             response.encoding = 'utf-8'
             uid = re.search(r'"uid":"([0-9]*)"', response.text).group(1)
             id = re.search(r'"id":([0-9]*)', response.text).group(1)
@@ -120,8 +124,8 @@ def get_uid_id(cookies):
     print('获取id、uid失败')
     return False, '获取id、uid失败\n'
 
-# 签到，返回True成功，否则失败
-def check(cookies, geo_api_info, id, uid):
+
+def get_post_data(geo_api_info, id, uid, in_school):
     my_province = geo_api_info['addressComponent']['province']
     my_city = geo_api_info['addressComponent']['city']
     my_district = geo_api_info['addressComponent']['district']
@@ -133,81 +137,144 @@ def check(cookies, geo_api_info, id, uid):
         my_area = my_province + ' ' + my_district
     else:
         my_area = my_province + ' ' + my_city + ' ' + my_district
-    # Post的data，如果你是勇士可以尝试给这个打上注释，老谜语人了，看不懂ヾ(•ω•`)o
-    data = {
-        'sfzhux': '0',      # 是否住校
-        'zhuxdz': '',       # 住校地址
-        'szgj': '',         # 所在国家
-        'szcs': '',         # 所在城市
-        'szgjcs': '',       # 所在国家城市
-        'sfjwfh': '0',      # 今日是否从境外中高风险地区返回？
-        'sfyjsjwfh': '0',   # 今日是否有家属从境外中高风险地区返回？
-        'sfjcjwfh': '0',    # 是否接触境外返华
-        'sflznjcjwfh': '0', # 今日是否与从境外中高风险地区返回的人员有过密切接触（不含已经解除隔离的境外返回人员）？
-        'sflqjkm': '4',     # 是否拥有苏康码？
-        'jkmys': '1',       # 当前苏康码颜色是？
-        'sfjtgfxdq': '0',   # 今日是否到过或者经停中高风险地区？
-        'tw': '2',          # 今日体温范围
-        'sfcxtz': '0',      # 今日是否出现发热、乏力、干咳、呼吸困难等症状？
-        'sfjcbh': '0',      # 今日是否接触疑似/确诊人群？
-        'sfcxzysx': '0',
-        'qksm': '',         # 情况说明
-        'sfyyjc': '0',      # 是否到相关医院或门诊检查？
-        'jcjgqr': '0',      # 检查结果属于以下哪种情况
-        'remark': '',
-        'address': my_address,
-        'geo_api_info': json.dumps(geo_api_info, separators=(',', ':')),
-        'area': my_area,
-        'province': my_province,
-        'city': my_city,
-        'sfzx': '0',        # 今日是否在校？
-        'sfjcwhry': '0',    # 今日是否与来自武汉市的人员有过密切接触？
-        'sfjchbry': '0',    # 今日是否与来自湖北其他地区（不含武汉市）的人员有过密切接触？
-        'sfcyglq': '0',     # 是否处于隔离期/医学观察期（含特殊情况需要居家观察的）？
-        'gllx': '',         # 隔离/医学观察场所
-        'glksrq': '',       # 隔离/医学观察开始时间
-        'jcbhlx': '',       # 接触人群类型
-        'jcbhrq': '',       # 接触时间
-        'bztcyy': '',       # 当前地点与上次不在同一城市，原因如下
-        'sftjhb': '0',      # 今日是否到过或者经停湖北其他地区（除武汉）？
-        'sftjwh': '0',      # 今日是否到过武汉（交通工具经停、人没有下车不算）？
-        'sftjwz': '0',      # 今日是否到过或者经停温州？
-        'sfjcwzry': '0',    # 今日是否与来自温州市的人员有过密切接触？
-        'jcjg': '',         # 检测结果
-        'date': time.strftime("%Y%m%d", time.localtime()),  # 打卡年月日一共8位
-        'uid': uid,  # UID
-        'created': round(time.time()), # 时间戳
-        'jcqzrq': '',
-        'sfjcqz': '',
-        'szsqsfybl': '0',
-        'sfsqhzjkk': '0',
-        'sqhzjkkys': '',
-        'sfygtjzzfj': '0',
-        'gtjzzfjsj': '',
-        'created_uid': '0',
-        'id': id,# 打卡的ID，其实这个没影响的
-        'gwszdd': '',
-        'sfyqjzgc': '',
-        'jrsfqzys': '',
-        'jrsfqzfy': '',
-        'ismoved': '0'
-    }
+
+    if in_school:
+        return {
+            "sfzhux": "0",
+            "zhuxdz": "",
+            "szgj": "",
+            "szcs": "",
+            "szgjcs": "",
+            "sfjwfh": "0",
+            "sfyjsjwfh": "0",
+            "sfjcjwfh": "0",
+            "sflznjcjwfh": "0",
+            "sflqjkm": "0",
+            "jkmys": "0",
+            "sfjtgfxdq": "0",
+            'address': my_address,
+            'geo_api_info': json.dumps(geo_api_info, separators=(',', ':')),
+            'area': my_area,
+            'province': my_province,
+            'city': my_city,
+            "created_uid": "0",
+            'id': id,  # 打卡的编号，其实这个没影响的
+            'date': time.strftime("%Y%m%d", time.localtime()),  # 打卡年月日一共8位
+            'uid': uid,  # UID
+            'created': round(time.time()),  # 时间戳
+            "fxzrwjtw": "",
+            "fxjrcjtw": "1",
+            "fxjrzjtw": "",
+            "sfzx": "1",    # 是否在校
+            "sfcyglq": "0",
+            "sfcxtz": "0",
+            "is_fx_log": "1",
+            "gwszdd": "",
+            "sfyqjzgc": "",
+            "jcqzrq": "",
+            "sfjcqz": "",
+            "jrsfqzys": "",
+            "jrsfqzfy": "",
+            "szsqsfybl": "0",
+            "sfsqhzjkk": "",
+            "sqhzjkkys": "",
+            "sfygtjzzfj": "",
+            "gtjzzfjsj": "",
+            "sftjwz": "0",
+            "sftjhb": "0",
+            "sfjcwhry": "0",
+            "sfjchbry": "0",
+            "ismoved": "0"  # 位置是否变动
+        }
+    else:
+        return {
+            'sfzhux': '0',      # 是否住校
+            'zhuxdz': '',       # 住校地址
+            'szgj': '',         # 所在国家
+            'szcs': '',         # 所在城市
+            'szgjcs': '',       # 所在国家城市
+            'sfjwfh': '0',      # 今日是否从境外中高风险地区返回？
+            'sfyjsjwfh': '0',   # 今日是否有家属从境外中高风险地区返回？
+            'sfjcjwfh': '0',    # 是否接触境外返华
+            'sflznjcjwfh': '0',  # 今日是否与从境外中高风险地区返回的人员有过密切接触（不含已经解除隔离的境外返回人员）？
+            'sflqjkm': '4',     # 是否拥有苏康码？
+            'jkmys': '1',       # 当前苏康码颜色是？
+            'sfjtgfxdq': '0',   # 今日是否到过或者经停中高风险地区？
+            'tw': '2',          # 今日体温范围
+            'sfcxtz': '0',      # 今日是否出现发热、乏力、干咳、呼吸困难等症状？
+            'sfjcbh': '0',      # 今日是否接触疑似/确诊人群？
+            'sfcxzysx': '0',
+            'qksm': '',         # 情况说明
+            'sfyyjc': '0',      # 是否到相关医院或门诊检查？
+            'jcjgqr': '0',      # 检查结果属于以下哪种情况
+            'remark': '',
+            'address': my_address,
+            'geo_api_info': json.dumps(geo_api_info, separators=(',', ':')),
+            'area': my_area,
+            'province': my_province,
+            'city': my_city,
+            'sfzx': '0',        # 今日是否在校？
+            'sfjcwhry': '0',    # 今日是否与来自武汉市的人员有过密切接触？
+            'sfjchbry': '0',    # 今日是否与来自湖北其他地区（不含武汉市）的人员有过密切接触？
+            'sfcyglq': '0',     # 是否处于隔离期/医学观察期（含特殊情况需要居家观察的）？
+            'gllx': '',         # 隔离/医学观察场所
+            'glksrq': '',       # 隔离/医学观察开始时间
+            'jcbhlx': '',       # 接触人群类型
+            'jcbhrq': '',       # 接触时间
+            'bztcyy': '',       # 当前地点与上次不在同一城市，原因如下
+            'sftjhb': '0',      # 今日是否到过或者经停湖北其他地区（除武汉）？
+            'sftjwh': '0',      # 今日是否到过武汉（交通工具经停、人没有下车不算）？
+            'sftjwz': '0',      # 今日是否到过或者经停温州？
+            'sfjcwzry': '0',    # 今日是否与来自温州市的人员有过密切接触？
+            'jcjg': '',         # 检测结果
+            'date': time.strftime("%Y%m%d", time.localtime()),  # 打卡年月日一共8位
+            'uid': uid,  # UID
+            'created': round(time.time()),  # 时间戳
+            'jcqzrq': '',
+            'sfjcqz': '',
+            'szsqsfybl': '0',
+            'sfsqhzjkk': '0',
+            'sqhzjkkys': '',
+            'sfygtjzzfj': '0',
+            'gtjzzfjsj': '',
+            'created_uid': '0',
+            'id': id,  # 打卡的ID，其实这个没影响的
+            'gwszdd': '',
+            'sfyqjzgc': '',
+            'jrsfqzys': '',
+            'jrsfqzfy': '',
+            'ismoved': '0'
+        }
+
+
+# 签到，返回True成功，否则失败
+def check(cookies, geo_api_info, id, uid, in_school):
+    data = get_post_data(geo_api_info, id, uid, in_school)
+    if in_school:
+        url = 'https://m.nuaa.edu.cn/ncov/wap/nuaa/save'
+    else:
+        url = 'https://m.nuaa.edu.cn/ncov/wap/default/save'
+    msg =  "校内打卡: " if in_school else "校外打卡: "
+    msg += '\n' + '位置：' + geo_api_info['formattedAddress'] + '\n'
     for _ in range(try_times):
         try:
             time.sleep(delay)
-            response = requests.post('https://m.nuaa.edu.cn/ncov/wap/default/save', data=data, cookies=cookies)
+            
+            response = requests.post(url, data=data, cookies=cookies)
             print('sign statue code:', response.status_code)
             #print('sign return:', response.text) 
             response.encoding = 'utf-8'
 
             if response.text.find('成功') >= 0:
                 print('打卡成功')
-                return True, '打卡成功' + '\n'
+                msg += '打卡成功' + '\n'
+                return True, msg
             else:
                 print('打卡失败')
         except:
             traceback.print_exc()
-    return False, '打卡失败' + '\n'
+    msg += '打卡成功' + '\n'
+    return False, msg
 
 
 def send_result(config, recever, result, messgae):
@@ -232,17 +299,31 @@ def main():
         result = False  # 打卡结果，False表示没有打上
         stu_number = student['stu_number']
         password = student['password']
-        longitude = student['longitude']
-        latitude = student['latitude']
-        mail = student['mail']
+        # 默认布在校
+        in_school = False if 'in_school' not in student else student['in_school']
+        if in_school and 'campus' in student:
+            # 通过校区设置经纬度
+            campus_dict = {'mgg': (118.820824, 32.03514),
+                           'tmh': (119.481185, 31.373404),
+                           'jjl': (118.791946, 31.938129)}
+            longitude, latitude = campus_dict[student['campus']]   
+        else:
+            longitude = student['longitude']
+            latitude = student['latitude']
+        mail = '' if 'mail' not in student else student['mail']
+        
+        disable_id_uid = False if 'disable_id_uid' not in student else student['disable_id_uid']
         message = ''
         message2 = ''
         print('--------------------------------------')
         try:
             cookies, message = login(stu_number, password)
             geo_api_info = get_address_info(longitude, latitude)
-            uid, id, message1 = get_uid_id(cookies)
-            result, message2 = check(cookies, geo_api_info, id, uid)
+            if not disable_id_uid:
+                uid, id, message1 = get_uid_id(cookies, in_school)
+            else:
+                id = uid = 0
+            result, message2 = check(cookies, geo_api_info, id, uid, in_school)
             message += message1 + message2
         except:
             print('发生错误，可能原因是打卡密码错误或者经纬度错误')
