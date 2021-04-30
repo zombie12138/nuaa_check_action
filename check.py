@@ -103,29 +103,7 @@ def get_address_info(longitude, latitude):
     return geo_api_info
     # print(dump.dump_all(response).decode('utf-8'))
 
-# 获取uid，id，打卡时候会用到，获取失败异常最可能的原因是账号密码错误
-def get_uid_id(cookies, in_school):
-    if in_school:
-        url = 'https://m.nuaa.edu.cn/ncov/wap/nuaa/index'
-    else:
-        url = 'https://m.nuaa.edu.cn/ncov/wap/default'
-    for _ in range(try_times):
-        try:
-            time.sleep(delay)
-            response = requests.get(
-                url, cookies=cookies)
-            response.encoding = 'utf-8'
-            uid = re.search(r'"uid":"([0-9]*)"', response.text).group(1)
-            id = re.search(r'"id":([0-9]*)', response.text).group(1)
-            return uid,id, 'UID获取成功\n'
-        except:
-            traceback.print_exc()
-    # 就这样吧，让他崩溃，万一假打卡了就不好了
-    print('获取id、uid失败')
-    return False, '获取id、uid失败\n'
-
-
-def get_post_data(geo_api_info, id, uid, in_school):
+def get_post_data(geo_api_info, in_school):
     my_province = geo_api_info['addressComponent']['province']
     my_city = geo_api_info['addressComponent']['city']
     my_district = geo_api_info['addressComponent']['district']
@@ -157,37 +135,20 @@ def get_post_data(geo_api_info, id, uid, in_school):
             'area': my_area,
             'province': my_province,
             'city': my_city,
-            "created_uid": "0",
-            'id': id,  # 打卡的编号，其实这个没影响的
-            'date': time.strftime("%Y%m%d", time.localtime()),  # 打卡年月日一共8位
-            'uid': uid,  # UID
-            'created': round(time.time()),  # 时间戳
             "fxzrwjtw": "",
             "fxjrcjtw": "1",
             "fxjrzjtw": "",
             "sfzx": "1",    # 是否在校
             "sfcyglq": "0",
             "sfcxtz": "0",
-            "is_fx_log": "1",
-            "gwszdd": "",
-            "sfyqjzgc": "",
-            "jcqzrq": "",
-            "sfjcqz": "",
-            "jrsfqzys": "",
-            "jrsfqzfy": "",
-            "szsqsfybl": "0",
-            "sfsqhzjkk": "",
-            "sqhzjkkys": "",
-            "sfygtjzzfj": "",
-            "gtjzzfjsj": "",
             "sftjwz": "0",
             "sftjhb": "0",
             "sfjcwhry": "0",
-            "sfjchbry": "0",
-            "ismoved": "0"  # 位置是否变动
+            "sfjchbry": "0"
         }
     else:
         return {
+            # 待跟新
             'sfzhux': '0',      # 是否住校
             'zhuxdz': '',       # 住校地址
             'szgj': '',         # 所在国家
@@ -228,8 +189,8 @@ def get_post_data(geo_api_info, id, uid, in_school):
             'sfjcwzry': '0',    # 今日是否与来自温州市的人员有过密切接触？
             'jcjg': '',         # 检测结果
             'date': time.strftime("%Y%m%d", time.localtime()),  # 打卡年月日一共8位
-            'uid': uid,  # UID
-            'created': round(time.time()),  # 时间戳
+            # 'uid': uid,  # UID
+            # 'created': round(time.time()),  # 时间戳
             'jcqzrq': '',
             'sfjcqz': '',
             'szsqsfybl': '0',
@@ -238,7 +199,7 @@ def get_post_data(geo_api_info, id, uid, in_school):
             'sfygtjzzfj': '0',
             'gtjzzfjsj': '',
             'created_uid': '0',
-            'id': id,  # 打卡的ID，其实这个没影响的
+            # 'id': id,  # 打卡的ID，其实这个没影响的
             'gwszdd': '',
             'sfyqjzgc': '',
             'jrsfqzys': '',
@@ -248,8 +209,8 @@ def get_post_data(geo_api_info, id, uid, in_school):
 
 
 # 签到，返回True成功，否则失败
-def check(cookies, geo_api_info, id, uid, in_school):
-    data = get_post_data(geo_api_info, id, uid, in_school)
+def check(cookies, geo_api_info, in_school):
+    data = get_post_data(geo_api_info, in_school)
     if in_school:
         url = 'https://m.nuaa.edu.cn/ncov/wap/nuaa/save'
     else:
@@ -262,7 +223,7 @@ def check(cookies, geo_api_info, id, uid, in_school):
             
             response = requests.post(url, data=data, cookies=cookies)
             print('sign statue code:', response.status_code)
-            #print('sign return:', response.text) 
+
             response.encoding = 'utf-8'
 
             if response.text.find('成功') >= 0:
@@ -295,6 +256,7 @@ def main():
     except:
         print('Json配置错误')
         return
+
     for student in config['students']:
         result = False  # 打卡结果，False表示没有打上
         stu_number = student['stu_number']
@@ -312,20 +274,14 @@ def main():
             latitude = student['latitude']
         mail = '' if 'mail' not in student else student['mail']
         
-        disable_id_uid = False if 'disable_id_uid' not in student else student['disable_id_uid']
         message = ''
-        message2 = ''
+        message1 = ''
         print('--------------------------------------')
         try:
             cookies, message = login(stu_number, password)
             geo_api_info = get_address_info(longitude, latitude)
-            if not disable_id_uid:
-                uid, id, message1 = get_uid_id(cookies, in_school)
-            else:
-                id = uid = 0
-                message1 = "已禁用id uid字段\n"
-            result, message2 = check(cookies, geo_api_info, id, uid, in_school)
-            message += message1 + message2
+            result, message1 = check(cookies, geo_api_info, in_school)
+            message += message1
         except:
             print('发生异常')
             message += '发生异常'
